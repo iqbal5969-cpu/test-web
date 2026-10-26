@@ -1,0 +1,683 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIKEN KEIKI Gas Monitoring Dashboard</title>
+
+    <style>
+        :root {
+            --primary: #DC2424;
+            --background: #F5F6F8;
+            --text: #20232A;
+            --muted: #737985;
+            --border: #E6E8EC;
+            --green: #168653;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        header {
+            background: white;
+            border-top: 5px solid var(--primary);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 5%;
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-mark {
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
+        }
+
+        .brand-mark img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .brand h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .brand p {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .connection {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 10px 14px;
+            border-radius: 30px;
+            background: #F1F3F5;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .dot {
+            width: 9px;
+            height: 9px;
+            background: #9298A2;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .connection.online .dot {
+            background: var(--green);
+        }
+
+        .connection.error .dot {
+            background: var(--primary);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: auto;
+            padding: 32px 5% 45px;
+        }
+
+        .page-heading {
+            margin-bottom: 24px;
+        }
+
+        .eyebrow {
+            color: var(--primary);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1.6px;
+            font-weight: bold;
+            margin-bottom: 9px;
+        }
+
+        .page-heading h2 {
+            font-size: 30px;
+            margin-bottom: 9px;
+        }
+
+        .page-heading p {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .section-label {
+            font-size: 13px;
+            font-weight: bold;
+            margin: 28px 0 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .gas-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 8px 28px rgba(24, 30, 40, 0.06);
+        }
+
+        .gas-card-top {
+            background: var(--primary);
+            color: white;
+            padding: 19px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .gas-card-top h3 {
+            font-size: 16px;
+        }
+
+        .gas-tag {
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 7px 11px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .gas-main {
+            padding: 30px 24px;
+            display: grid;
+            grid-template-columns: 1fr 180px;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .gas-name {
+            font-size: 21px;
+            font-weight: bold;
+            margin-bottom: 9px;
+        }
+
+        .gas-description {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+
+        .reading {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .reading-value {
+            color: var(--primary);
+            font-size: clamp(48px, 9vw, 76px);
+            line-height: 1;
+            font-weight: bold;
+        }
+
+        .reading-unit {
+            font-size: 18px;
+            color: var(--muted);
+            font-weight: bold;
+        }
+
+        .reading-caption {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 12px;
+        }
+
+        /* Circular gauge */
+        .gauge {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: auto;
+            display: grid;
+            place-items: center;
+
+            /* Initial empty gauge */
+            background: conic-gradient(
+                    var(--primary) 0deg,
+                    #ECEEF1 0deg 360deg
+            );
+
+            position: relative;
+            transition: background 0.3s ease;
+        }
+
+        /* White centre creates the ring */
+        .gauge::before {
+            content: "";
+            position: absolute;
+            width: 124px;
+            height: 124px;
+            border-radius: 50%;
+            background: white;
+        }
+
+        .gauge-inner {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .gauge-inner strong {
+            display: block;
+            font-size: 27px;
+        }
+
+        .gauge-inner span {
+            display: block;
+            color: var(--muted);
+            font-size: 10px;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .metric-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 23px;
+            box-shadow: 0 8px 28px rgba(24, 30, 40, 0.06);
+        }
+
+        .metric-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .metric-top h3 {
+            font-size: 14px;
+        }
+
+        .metric-icon {
+            display: grid;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            background: #FFF0F0;
+            color: var(--primary);
+            border-radius: 12px;
+            font-size: 22px;
+        }
+
+        .metric-value {
+            font-size: clamp(30px, 5vw, 42px);
+            font-weight: bold;
+        }
+
+        .metric-unit {
+            font-size: 17px;
+            color: var(--muted);
+            font-weight: bold;
+        }
+
+        .metric-note {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 12px;
+        }
+
+        .device-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 22px;
+            box-shadow: 0 8px 28px rgba(24, 30, 40, 0.06);
+        }
+
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        .device-item .label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .device-item .value {
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .status-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 22px;
+            padding: 17px 20px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .status-panel strong {
+            color: var(--text);
+        }
+
+        footer {
+            padding: 20px 5%;
+            text-align: center;
+            font-size: 11px;
+            line-height: 1.6;
+            color: var(--muted);
+            border-top: 1px solid var(--border);
+            background: white;
+        }
+
+        @media (max-width: 600px) {
+            .header-inner {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .gas-main {
+                grid-template-columns: 1fr;
+            }
+
+            .gauge {
+                width: 130px;
+                height: 130px;
+            }
+
+            .gauge::before {
+                width: 106px;
+                height: 106px;
+            }
+
+            .device-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div class="brand-mark">
+                <img
+                        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQLY022-dHArTkCFYvxCrwGw9NJUI4_hx3HciU1nwDVCg&s=10"
+                        alt="Riken Keiki Logo">
+            </div>
+
+            <div>
+                <h1>RIKEN KEIKI</h1>
+                <p>GP-6001 Gas Monitoring Dashboard</p>
+            </div>
+        </div>
+
+        <div class="connection" id="connection">
+            <span class="dot"></span>
+            <span id="connectionText">Waiting for data...</span>
+        </div>
+    </div>
+</header>
+
+<main>
+    <section class="page-heading">
+        <div class="eyebrow">Monitoring System / Live Data</div>
+        <h2>Gas Monitoring Overview</h2>
+        <p>
+            Real-time monitoring of gas concentration, ambient temperature
+            and relative humidity.
+        </p>
+    </section>
+
+    <div class="section-label">Gas Concentration</div>
+
+    <section class="gas-card">
+        <div class="gas-card-top">
+            <h3>Primary Gas Sensor</h3>
+            <span class="gas-tag">SENSOR HW-6211</span>
+        </div>
+
+        <div class="gas-main">
+            <div>
+                <div class="gas-name">Methane (CH₄)</div>
+                <div class="gas-description">
+                    Current measured gas concentration
+                </div>
+
+                <div class="reading">
+                    <span class="reading-value" id="gasValue">--</span>
+                    <span class="reading-unit">%LEL</span>
+                </div>
+
+                <p class="reading-caption">
+                    Last reading: <span id="gasUpdated">Waiting for data</span>
+                </p>
+            </div>
+
+            <div class="gauge" id="gauge">
+                <div class="gauge-inner">
+                    <strong id="gaugePercent">0%</strong>
+                    <span>OF SCALE</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-label">Environmental Readings</div>
+
+    <section class="metrics">
+        <article class="metric-card">
+            <div class="metric-top">
+                <h3>Temperature</h3>
+                <div class="metric-icon">°</div>
+            </div>
+
+            <div>
+                <span class="metric-value" id="temperature">--</span>
+                <span class="metric-unit">°C</span>
+            </div>
+
+            <p class="metric-note">Ambient temperature</p>
+        </article>
+
+        <article class="metric-card">
+            <div class="metric-top">
+                <h3>Humidity</h3>
+                <div class="metric-icon">%</div>
+            </div>
+
+            <div>
+                <span class="metric-value" id="humidity">--</span>
+                <span class="metric-unit">%RH</span>
+            </div>
+
+            <p class="metric-note">Relative humidity</p>
+        </article>
+    </section>
+
+    <div class="section-label">Device Information</div>
+
+    <section class="device-card">
+        <div class="device-grid">
+            <div class="device-item">
+                <div class="label">Instrument</div>
+                <div class="value">Riken Keiki GP-6001</div>
+            </div>
+
+            <div class="device-item">
+                <div class="label">Serial Number</div>
+                <div class="value">363829A</div>
+            </div>
+
+            <div class="device-item">
+                <div class="label">Sensor Model</div>
+                <div class="value">HW-6211</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="status-panel">
+        <div>
+            <span class="dot" id="dataDot"></span>
+            <strong>Data status:</strong>
+            <span id="dataStatus">Waiting for ESP32 data</span>
+        </div>
+
+        <div>
+            <strong>Last updated:</strong>
+            <span id="lastUpdated">--</span>
+        </div>
+
+        <div>
+            <strong>Mode:</strong>
+            <span id="readingMode">Waiting for data</span>
+        </div>
+    </section>
+</main>
+
+<footer>
+    IQBAL DANIAL NGAH<br>
+    Display dashboard only. Verify alarms and safety decisions using
+    approved gas detection equipment and procedures.
+</footer>
+
+<script>
+    // Node.js server endpoint
+    const API_URL = "/latest";
+
+    // Refresh dashboard every 2 seconds
+    const REFRESH_INTERVAL = 2000;
+
+    // Circular gauge scale: 0 to 100
+    const GAS_SCALE_MAX = 100;
+
+    const el = (id) => document.getElementById(id);
+
+    function setStatus(isOnline, message) {
+        const connection = el("connection");
+
+        connection.classList.remove("online", "error");
+        connection.classList.add(isOnline ? "online" : "error");
+
+        el("connectionText").textContent = message;
+        el("dataStatus").textContent = message;
+        el("dataDot").style.background =
+            isOnline ? "#168653" : "#DC2424";
+    }
+
+    // Update the red circular gauge from 0% to 100%
+    function updateGauge(concentration) {
+        // Limit displayed value to the 0–100 range
+        const percentage = Math.max(
+            0,
+            Math.min(100, (concentration / GAS_SCALE_MAX) * 100)
+        );
+
+        // Convert percentage to degrees: 100% = 360 degrees
+        const degrees = percentage * 3.6;
+
+        // Red fills clockwise from the top
+        el("gauge").style.background = `
+            conic-gradient(
+                var(--primary) 0deg ${degrees}deg,
+                #ECEEF1 ${degrees}deg 360deg
+            )
+        `;
+
+        el("gaugePercent").textContent =
+            percentage.toFixed(1) + "%";
+    }
+
+    function getNumber(data, key) {
+        const value = Number(data[key]);
+
+        if (
+            data[key] === null ||
+            data[key] === undefined ||
+            data[key] === "" ||
+            !Number.isFinite(value)
+        ) {
+            throw new Error("Missing or invalid field: " + key);
+        }
+
+        return value;
+    }
+
+    async function updateDashboard() {
+        try {
+            const response = await fetch(API_URL, {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                cache: "no-store"
+            });
+
+            if (!response.ok) {
+                throw new Error("HTTP " + response.status);
+            }
+
+            const data = await response.json();
+
+            const conc = getNumber(data, "conc");
+            const temp = getNumber(data, "temp");
+
+            // Humidity accepts either 90 or "90%"
+            const humid = Number(
+                String(data.humid).replace("%", "")
+            );
+
+            if (!Number.isFinite(humid)) {
+                throw new Error("Invalid humidity value");
+            }
+
+            // Update the displayed readings
+            el("gasValue").textContent = conc.toFixed(1);
+            el("temperature").textContent = temp.toFixed(1);
+            el("humidity").textContent = humid.toFixed(1);
+
+            // Update circular gauge
+            updateGauge(conc);
+
+            // Update timestamps
+            const now = new Date();
+
+            el("gasUpdated").textContent =
+                now.toLocaleTimeString();
+
+            el("lastUpdated").textContent =
+                now.toLocaleString();
+
+            // Update connection status
+            const readingStatus =
+                String(data.readingStatus || "live");
+
+            el("readingMode").textContent = readingStatus;
+
+            const isLive =
+                readingStatus.toLowerCase() === "live";
+
+            setStatus(
+                isLive,
+                isLive ? "Live data connected" :
+                    "Reading status: " + readingStatus
+            );
+
+        } catch (error) {
+            console.error("Could not update dashboard:", error);
+
+            setStatus(false, "Waiting for data / connection error");
+            el("readingMode").textContent = "No connection";
+        }
+    }
+
+    // First update immediately, then refresh every 2 seconds
+    updateDashboard();
+    setInterval(updateDashboard, REFRESH_INTERVAL);
+</script>
+
+</body>
+</html>
