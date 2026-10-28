@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -371,6 +370,12 @@
             background: white;
         }
 
+        /* Hide environmental readings without changing the JavaScript */
+        .metrics,
+        main > .section-label:nth-of-type(2) {
+            display: none;
+        }
+
         @media (max-width: 600px) {
             .header-inner {
                 align-items: flex-start;
@@ -394,6 +399,10 @@
             .device-grid {
                 grid-template-columns: 1fr;
             }
+            .metrics,
+            .section-label:nth-of-type(2) {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -411,7 +420,7 @@
 
             <div>
                 <h1>RIKEN KEIKI</h1>
-                <p>GP-6001 Gasa Monitoring Dashboard</p>
+                <p>GP-6001 Gas Monitoring Dashboard</p>
             </div>
         </div>
 
@@ -427,8 +436,7 @@
         <div class="eyebrow">Monitoring System / Live Data</div>
         <h2>Gas Monitoring Overview</h2>
         <p>
-            Real-time monitoring of gas concentration, ambient temperature
-            and relative humidity.
+            Real-time monitoring of gas concentration.
         </p>
     </section>
 
@@ -681,3 +689,4 @@
 
 </body>
 </html>
+
